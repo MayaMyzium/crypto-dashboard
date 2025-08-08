@@ -21,8 +21,8 @@ async function fetchData() {
       document.getElementById('fngValue').textContent = '無法取得資料';
     }
 
-    // Set BTC reserves placeholder because reliable public API is not available
-    document.getElementById('btcReserve').textContent = '暫無即時數據 (無適用免費 API)';
+    // Fetch specific Bitcoin address balance (satoshi) and convert to BTC
+    await fetchAddressBalance();
 
     // Fetch latest prices
     const ids = coins.map(c => c.id).join(',');
@@ -101,6 +101,30 @@ async function fetchData() {
 
   } catch (error) {
     console.error('資料取得錯誤：', error);
+  }
+}
+
+/**
+ * 取得指定比特幣地址的餘額，並顯示在頁面上。
+ * 這裡使用 blockchain.info 的 API，它返回單一數字，單位為 satoshi。
+ * 乘以 1e-8 即可換算成比特幣。
+ */
+async function fetchAddressBalance() {
+  try {
+    const address = '1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP';
+    // 加上 cors=true 參數，以確保瀏覽器允許跨域存取
+    const response = await fetch(`https://blockchain.info/q/addressbalance/${address}?cors=true`);
+    const text = await response.text();
+    const satoshi = parseFloat(text);
+    if (!isNaN(satoshi)) {
+      const btc = satoshi / 1e8;
+      document.getElementById('btcReserve').textContent = `${btc.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })} BTC`;
+    } else {
+      document.getElementById('btcReserve').textContent = '無法取得地址餘額';
+    }
+  } catch (e) {
+    console.error('取得比特幣地址餘額時出錯：', e);
+    document.getElementById('btcReserve').textContent = '取得失敗';
   }
 }
 
