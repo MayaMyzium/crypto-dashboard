@@ -1,53 +1,36 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>進一步分析</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body{font-family:Arial, sans-serif;background:#f5f5f5;color:#333;margin:0;padding:20px}
-    .wrap{max-width:980px;margin:0 auto}
-    .card{background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px;margin:12px 0}
-    .note{font-size:.85em;color:#666;margin-top:4px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
-    input{padding:8px;border:1px solid #ddd;border-radius:8px;width:100%;max-width:460px}
-    button{padding:10px 14px;border-radius:8px;background:#0d6efd;color:#fff;border:none;cursor:pointer}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:14px}
-    th{background:#fafafa}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進一步分析 - 虛擬貨幣儀表板</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
-  <h1>進一步分析（教學版）</h1>
-  <div class="card">
-    <h2>填入 Cloudflare Worker 網址</h2>
-    <div class="row">
-      <input id="workerInput" placeholder="貼上你的 worker 網址（例如 https://xxx.workers.dev）" />
-      <button id="saveWorker">儲存</button>
-    </div>
-    <div class="note">此代理可幫忙抓取 Binance/OKX 合約資料，請先在 Cloudflare 建立 Worker 並貼上網址。</div>
-  </div>
-  <div class="card">
-    <h2>市場分析</h2>
-    <table id="analysisTable">
-      <thead>
-        <tr>
-          <th>資產</th>
-          <th>即時價 (USD)</th>
-          <th>1 分鐘變化 (%)</th>
-          <th>RSI</th>
-          <th>方向</th>
-          <th>進場</th>
-          <th>停損</th>
-          <th>停利</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div class="note">每分鐘更新一次；此分析基於 RSI、短線動能以及合約多空指標為參考，僅供學習。</div>
-  </div>
-</div>
-<script src="analysis.js"></script>
+    <header>
+        <h1>進一步分析</h1>
+        <p>合約多空比與專家觀點</p>
+    </header>
+    <main>
+        <section id="long-short-analysis">
+            <h2>Binance 永續合約多空比</h2>
+            <p>以下表格顯示主要虛擬貨幣在Binance永續合約中的多空倉位比率（全球帳戶多空比）。多空比大於1代表多單略多，小於1代表空單較多。</p>
+            <!-- 動態插入表格 -->
+        </section>
+
+        <section id="expert-view">
+            <h2>專家視角</h2>
+            <p>作為一名經濟學家與資深操盤手，我們會關注多空比、價格走勢以及交易量等指標來判斷市場情緒。使用者可綜合恐懼貪婪指數、RSI、長短倉比等多種數據，建立自己的操作策略。請注意，數據僅供參考，不構成投資建議。</p>
+        </section>
+
+        <section>
+            <a href="index.html">← 回到首頁</a>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 虛擬貨幣儀表板</p>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,65 +1,66 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>加密市場儀表板</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body{font-family:Arial, sans-serif;background:#f5f5f5;color:#333;margin:0;padding:20px}
-    h1{text-align:center;margin:0 0 20px}
-    .section{max-width:980px;margin:16px auto;background:#fff;padding:16px 16px 8px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-    #small{font-size:.85em;color:#666}
-    table{width:100%;border-collapse:collapse;margin:8px 0}
-    th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:14px}
-    th{background:#fafafa}
-    #fngValue,#addrBalance{font-size:18px;font-weight:700}
-    canvas{max-width:100%}
-    .actions{max-width:980px;margin:8px auto;text-align:center}
-    .btn{display:inline-block;margin:8px;padding:10px 14px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虛擬貨幣資訊儀表板</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>加密市場儀表板</h1>
+    <header>
+        <h1>虛擬貨幣資訊儀表板</h1>
+        <p>即時監控恐懼貪婪指數、比特幣地址餘額、價格與RSI指標</p>
+    </header>
 
-  <div class="section">
-    <h2>恐懼與貪婪指數</h2>
-    <div id="fngValue">載入中...</div>
-    <div id="small">資料來源：Alternative.me（免費 API）。</div>
-  </div>
+    <main>
+        <section id="fear-greed">
+            <h2>恐懼與貪婪指數</h2>
+            <div class="card">
+                <p id="fng-value">載入中…</p>
+                <!-- 使用官方提供的即時圖片作為備用顯示 -->
+                <img id="fng-image" src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Fear & Greed Index" />
+            </div>
+            <p class="note">恐懼貪婪指數由Alternative.me提供，值域為0（極度恐慌）至100（極度貪婪），指標可作為市場情緒參考【762950707989567†L59-L79】。</p>
+        </section>
 
-  <div class="section">
-    <h2>指定比特幣地址餘額</h2>
-    <div id="small">地址：<code id="theAddr">1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP</code></div>
-    <div id="addrBalance">載入中...</div>
-    <h3>（近期）每日餘額變化</h3>
-    <div id="small">免費版僅以最近數百筆交易聚合成日線，非全史；要完整歷史需伺服器或付費數據。</div>
-    <canvas id="addrChart" height="140"></canvas>
-  </div>
+        <section id="address-section">
+            <h2>比特幣地址餘額變化圖</h2>
+            <p>下方圖表顯示指定比特幣地址自創建以來每日餘額的變化。資料透過BlockCypher的地址端點取得，該端點支援最多2000筆交易並可使用<code>before</code>參數分頁【963741525815197†L3496-L3504】。</p>
+            <div id="address-charts"></div>
+            <p class="note">注意：部份地址（如冷錢包）交易筆數過多，可能需要多次API請求才能取得完整資料，或自行以Python腳本離線計算。</p>
+        </section>
 
-  <div class="section">
-    <h2>價格、日線 RSI、建議買賣區（BTC/ETH/XRP/DOGE/ADA）</h2>
-    <table id="cryptoTable">
-      <thead>
-        <tr>
-          <th>幣種</th>
-          <th>最新價格 (USD)</th>
-          <th>日線 RSI</th>
-          <th>建議買入區 (USD)</th>
-          <th>建議賣出區 (USD)</th>
-          <th>建議動作</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div id="small">RSI 以最近 14 日日線計算；買賣區以 30 日高低作為簡化支撐／壓力位（教學用途）。</div>
-  </div>
+        <section id="rsi-prices">
+            <h2>虛擬貨幣價格與RSI</h2>
+            <p>本區展示主要虛擬貨幣（BTC、ETH、XRP、DOGE、ADA）的即時價格及14日RSI。RSI是衡量價格動能的振盪指標，當RSI大於70通常被視為過熱、可能出現回檔；低於30則被視為超賣，可能存在反彈機會【800268421240992†L375-L393】。</p>
+            <table id="price-table">
+                <thead>
+                    <tr>
+                        <th>幣種</th>
+                        <th>價格 (USDT)</th>
+                        <th>RSI (14日)</th>
+                        <th>建議區間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 動態填入資料 -->
+                </tbody>
+            </table>
+        </section>
 
-  <div class="actions">
-    <a class="btn" href="analysis.html">進一步分析（多空合約 / 每分鐘變化）</a>
-  </div>
+        <section id="long-short">
+            <h2>合約多空分析</h2>
+            <p>點擊下方連結進入進階分析頁面，查看Binance和OKX永續合約多空倉位比率，以及每分鐘價格變化的技術分析。</p>
+            <a href="analysis.html">進一步分析</a>
+        </section>
+    </main>
 
-  <!-- Chart.js for drawing charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="app.js"></script>
+    <footer>
+        <p>&copy; 2025 虛擬貨幣儀表板</p>
+    </footer>
+
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
