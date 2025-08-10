@@ -1,36 +1,55 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>進一步分析 - 虛擬貨幣儀表板</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <header>
-        <h1>進一步分析</h1>
-        <p>合約多空比與專家觀點</p>
-    </header>
-    <main>
-        <section id="long-short-analysis">
-            <h2>Binance 永續合約多空比</h2>
-            <p>以下表格顯示主要虛擬貨幣在Binance永續合約中的多空倉位比率（全球帳戶多空比）。多空比大於1代表多單略多，小於1代表空單較多。</p>
-            <!-- 動態插入表格 -->
-        </section>
-
-        <section id="expert-view">
-            <h2>專家視角</h2>
-            <p>作為一名經濟學家與資深操盤手，我們會關注多空比、價格走勢以及交易量等指標來判斷市場情緒。使用者可綜合恐懼貪婪指數、RSI、長短倉比等多種數據，建立自己的操作策略。請注意，數據僅供參考，不構成投資建議。</p>
-        </section>
-
-        <section>
-            <a href="index.html">← 回到首頁</a>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2025 虛擬貨幣儀表板</p>
-    </footer>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>永續合約多空分析</title>
+    <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
-</body>
+  </head>
+  <body>
+    <nav class="navbar">
+      <a href="index.html" class="nav-link">首頁</a>
+      <a href="analysis.html" class="nav-link">合約分析</a>
+    </nav>
+
+    <main>
+      <section id="ratio" class="section">
+        <h2>Binance 與 OKX 永續合約多空比</h2>
+        <p>
+          本表格展示 Binance
+          <code>/futures/data/topLongShortPositionRatio</code> API
+          最新一分鐘的 Top Trader 多空比【750987118967491†L86-L111】以及 OKX
+          長短比（透過 Amberdata 代理，可查詢多家交易所【786883057243163†L441-L500】）。
+          每行顯示最近一次與前一次的差值，方便觀察趨勢。
+        </p>
+        <table id="ratioTable" class="data-table">
+          <thead>
+            <tr>
+              <th>代幣</th>
+              <th>交易所</th>
+              <th>多空比</th>
+              <th>最近變化</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- JavaScript 動態填充 -->
+          </tbody>
+        </table>
+      </section>
+      <section id="algo" class="section">
+        <h2>多空點位分析公式</h2>
+        <p>
+          這裡展示一個進階模型，用於根據多空比、其變化率、成交量與價格動能計算綜合信號，判斷做多或做空的點位。模型來源於經濟學家與大戶操盤手的綜合經驗，包含 winsorize 去極值、Z 分數標準化、量能權重與趨勢過濾等步驟。
+        </p>
+        <pre id="algo-code" class="code-block"></pre>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>本頁面的數據僅供參考。使用者需自行確認 API 金鑰及網絡授權，並依交易策略調整參數。</p>
+    </footer>
+
+    <script src="analysis.js"></script>
+  </body>
 </html>
