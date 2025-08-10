@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>加密市場儀表板</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:Arial, sans-serif;background:#f5f5f5;color:#333;margin:0;padding:20px}
+    h1{text-align:center;margin:0 0 20px}
+    .section{max-width:980px;margin:16px auto;background:#fff;padding:16px 16px 8px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    #small{font-size:.85em;color:#666}
+    table{width:100%;border-collapse:collapse;margin:8px 0}
+    th,td{border-bottom:1px solid #eee;padding:8px;text-align:center;font-size:14px}
+    th{background:#fafafa}
+    #fngValue,#addrBalance{font-size:18px;font-weight:700}
+    canvas{max-width:100%}
+    .actions{max-width:980px;margin:8px auto;text-align:center}
+    .btn{display:inline-block;margin:8px;padding:10px 14px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none}
+  </style>
+</head>
+<body>
+  <h1>加密市場儀表板</h1>
+
+  <div class="section">
+    <h2>恐懼與貪婪指數</h2>
+    <div id="fngValue">載入中...</div>
+    <div id="small">資料來源：Alternative.me（免費 API）。</div>
+  </div>
+
+  <div class="section">
+    <h2>指定比特幣地址餘額</h2>
+    <div id="small">地址：<code id="theAddr">1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP</code></div>
+    <div id="addrBalance">載入中...</div>
+    <h3>（近期）每日餘額變化</h3>
+    <div id="small">免費版僅以最近數百筆交易聚合成日線，非全史；要完整歷史需伺服器或付費數據。</div>
+    <canvas id="addrChart" height="140"></canvas>
+  </div>
+
+  <div class="section">
+    <h2>價格、日線 RSI、建議買賣區（BTC/ETH/XRP/DOGE/ADA）</h2>
+    <table id="cryptoTable">
+      <thead>
+        <tr>
+          <th>幣種</th>
+          <th>最新價格 (USD)</th>
+          <th>日線 RSI</th>
+          <th>建議買入區 (USD)</th>
+          <th>建議賣出區 (USD)</th>
+          <th>建議動作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="small">RSI 以最近 14 日日線計算；買賣區以 30 日高低作為簡化支撐／壓力位（教學用途）。</div>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="analysis.html">進一步分析（多空合約 / 每分鐘變化）</a>
+  </div>
+
+  <!-- Chart.js for drawing charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
