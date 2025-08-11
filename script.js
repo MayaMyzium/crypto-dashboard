@@ -198,19 +198,17 @@ async function updateCryptos() {
     { id: 'dogecoin', symbol: 'DOGE', name: '狗狗幣' },
     { id: 'cardano', symbol: 'ADA', name: 'ADA' }
   ];
-  const grid = document.getElementById('crypto-grid');
-  grid.innerHTML = '';
+  const tbody = document.getElementById('crypto-tbody');
+  tbody.innerHTML = '';
   for (const coin of coins) {
-    const card = document.createElement('div');
-    card.className = 'crypto-card';
-    card.innerHTML = `
-      <h3>${coin.name} (${coin.symbol})</h3>
-      <p class="price" id="price-${coin.id}">載入中…</p>
-      <p class="rsi" id="rsi-${coin.id}">RSI: --</p>
-      <p class="recommendation" id="rec-${coin.id}"></p>
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${coin.name} (${coin.symbol})</td>
+      <td id="price-${coin.id}">載入中…</td>
+      <td id="rsi-${coin.id}">--</td>
+      <td id="rec-${coin.id}"></td>
     `;
-    grid.appendChild(card);
-    // 非同步取得資料
+    tbody.appendChild(tr);
     updateCoinInfo(coin).catch((err) => {
       console.error('取得幣種資料失敗', coin.id, err);
       document.getElementById(`price-${coin.id}`).textContent = '無法取得資料';

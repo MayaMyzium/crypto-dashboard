@@ -114,6 +114,23 @@ section h2 {
   margin-top: 0.5rem;
 }
 
+/* 表格呈現主要幣種 */
+.crypto-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+.crypto-table th,
+.crypto-table td {
+  border: 1px solid #e1e4e8;
+  padding: 0.5rem;
+  text-align: center;
+}
+.crypto-table thead {
+  background-color: #f0f3f6;
+  font-weight: bold;
+}
+
 .btn {
   display: inline-block;
   background-color: #3498db;

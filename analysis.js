@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const table = document.createElement('table');
     table.className = 'analysis-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>分析</th></tr>`;
+    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>Binance 資金費率</th><th>OKX 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
     const tbody = document.createElement('tbody');
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('分析資料取得失敗', coin, err);
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 6;
+      td.colSpan = 9;
       td.textContent = '無法取得資料';
       tr.appendChild(td);
       tbody.appendChild(tr);
@@ -38,17 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function updateAnalysis(coin, tbody) {
-  // 同時取得幣安與 OKX 資料
-  const [binance, okx] = await Promise.all([
+  // 同時取得幣安與 OKX 多空比率和資金費率
+  const [binanceRatios, okxRatios, binanceFR, okxFR] = await Promise.all([
     fetchBinanceRatio(coin.symbol),
-    fetchOKXRatio(coin.ccy)
+    fetchOKXRatio(coin.ccy),
+    fetchBinanceFundingRate(coin.symbol),
+    fetchOKXFundingRate(`${coin.ccy}-USDT-SWAP`)
   ]);
+  // 只取最近三筆資料
+  const binance = binanceRatios.slice(-3);
+  const okx = okxRatios;
   // 對 OKX 資料以時間為鍵建立 map
   const okxMap = {};
   okx.forEach((d) => {
     okxMap[d.time] = d;
   });
-  for (let i = 0; i < binance.length; i++) {
+  for (let idx = 0; idx < binance.length; idx++) {
+    const i = idx;
     const row = document.createElement('tr');
     const time = binance[i].time;
     const bRatio = binance[i].ratio;
@@ -58,7 +64,19 @@ async function updateAnalysis(coin, tbody) {
     const oRatio = okData ? okData.ratio : null;
     const oPrev = okData && okxMap[binance[i - 1]?.time] ? okxMap[binance[i - 1].time].ratio : oRatio;
     const oDiff = oRatio != null && oPrev != null ? oRatio - oPrev : null;
-    // 分析：若二者皆 >1 則偏多；若皆 <1 則偏空；其餘為中性
+    // 計算情緒分數：使用您的自訂公式
+    // SS = w1 * tanh(LSR - 1) + w2 * tanh(ΔLSR) + w3 * tanh(FR * k)
+    const w1 = 0.4;
+    const w2 = 0.3;
+    const w3 = 0.3;
+    const k = 10000;
+    const lsrTerm = Math.tanh(bRatio - 1);
+    const deltaTerm = Math.tanh(bDiff);
+    // 使用兩個平台平均資金費率作為 FR
+    const avgFR = (binanceFR + okxFR) / 2;
+    const frTerm = Math.tanh(avgFR * k);
+    const sentimentScore = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
+    // 分析：根據比率判斷
     let analysis = '';
     if (bRatio > 1 && (oRatio == null || oRatio > 1)) analysis = '市場偏多';
     else if (bRatio < 1 && (oRatio != null && oRatio < 1)) analysis = '市場偏空';
@@ -83,6 +101,18 @@ async function updateAnalysis(coin, tbody) {
     const tdODiff = document.createElement('td');
     tdODiff.textContent = oDiff != null && i > 0 ? oDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
     row.appendChild(tdODiff);
+    // Binance 資金費率
+    const tdBFR = document.createElement('td');
+    tdBFR.textContent = binanceFR !== null ? binanceFR.toFixed(6) : 'N/A';
+    row.appendChild(tdBFR);
+    // OKX 資金費率
+    const tdOFR = document.createElement('td');
+    tdOFR.textContent = okxFR !== null ? okxFR.toFixed(6) : 'N/A';
+    row.appendChild(tdOFR);
+    // 情緒分數
+    const tdSS = document.createElement('td');
+    tdSS.textContent = sentimentScore.toFixed(3);
+    row.appendChild(tdSS);
     // 分析
     const tdAnalysis = document.createElement('td');
     tdAnalysis.textContent = analysis;
@@ -136,6 +166,49 @@ async function fetchOKXRatio(ccy) {
   } catch (e) {
     console.error('fetchOKXRatio error', e);
     return [];
+  }
+}
+
+/**
+ * 從幣安取得最新資金費率
+ * @param {string} symbol 合約代碼，例如 BTCUSDT
+ * 介面：GET https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1
+ * 返回最近一條 funding rate 記錄
+ */
+async function fetchBinanceFundingRate(symbol) {
+  try {
+    const url = `https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=1`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      const fr = parseFloat(data[0].fundingRate);
+      return fr;
+    }
+    return null;
+  } catch (e) {
+    console.error('fetchBinanceFundingRate error', e);
+    return null;
+  }
+}
+
+/**
+ * 從 OKX 取得最新資金費率
+ * @param {string} instId 如 BTC-USDT-SWAP
+ * 接口：GET https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP
+ */
+async function fetchOKXFundingRate(instId) {
+  try {
+    const url = `https://www.okx.com/api/v5/public/funding-rate?instId=${instId}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.data && json.data.length > 0) {
+      const fr = parseFloat(json.data[0].fundingRate);
+      return fr;
+    }
+    return null;
+  } catch (e) {
+    console.error('fetchOKXFundingRate error', e);
+    return null;
   }
 }
 
