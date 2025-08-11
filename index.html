@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密貨幣資訊面板</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>加密貨幣資訊面板</h1>
+    </header>
+    <main>
+        <section id="fear-greed">
+            <h2>恐懼與貪婪指數</h2>
+            <p id="fg-index">載入中...</p>
+        </section>
+        <section id="btc-balance">
+            <h2>比特幣地址餘額</h2>
+            <p id="btc-balance-amount">載入中...</p>
+            <canvas id="btc-balance-chart"></canvas>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
