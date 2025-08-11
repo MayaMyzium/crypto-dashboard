@@ -35,6 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.appendChild(tr);
     });
   });
+  // 取得表格資料後，繪製最近一週的情緒分數折線圖
+  updateSentimentChart().catch((err) => {
+    console.error('情緒分數折線圖資料取得失敗', err);
+  });
 });
 
 async function updateAnalysis(coin, tbody) {
@@ -119,6 +123,137 @@ async function updateAnalysis(coin, tbody) {
     row.appendChild(tdAnalysis);
     tbody.appendChild(row);
   }
+}
+
+/**
+ * 從幣安取得過去一週（168 個小時）每小時的多空帳戶比率
+ * 使用 period=1h，limit=168 取得資料【923837169191340†L93-L146】
+ * 返回的資料倒序排列，因此使用 reverse() 轉為時間遞增。
+ *
+ * @param {string} symbol 幣安合約代碼，例如 BTCUSDT
+ * @returns {Promise<Array<{time: string, ratio: number}>>} 時間與比率
+ */
+async function fetchBinanceRatioWeekly(symbol) {
+  try {
+    const url = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=168`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data || []).map((d) => ({
+      // 使用當地時間字串（MM/dd HH:mm）便於標籤顯示
+      time: new Date(parseInt(d.timestamp)).toLocaleString('zh-TW', {
+        hour12: false,
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      ratio: parseFloat(d.longShortRatio)
+    })).reverse();
+  } catch (e) {
+    console.error('fetchBinanceRatioWeekly error', e);
+    return [];
+  }
+}
+
+/**
+ * 依照給定的多空比率資料和固定資金費率計算情緒分數序列
+ * 公式：SS = w1*tanh(LSR-1) + w2*tanh(ΔLSR) + w3*tanh(FR*k)
+ *
+ * @param {Array<{time:string, ratio:number}>} ratioData 多空比率資料
+ * @param {number} avgFR 平均資金費率，可為 null
+ * @returns {Array<number>} 情緒分數陣列
+ */
+function calculateSentimentScores(ratioData, avgFR) {
+  const scores = [];
+  const w1 = 0.4;
+  const w2 = 0.3;
+  const w3 = 0.3;
+  const k = 10000;
+  for (let i = 0; i < ratioData.length; i++) {
+    const ratio = ratioData[i].ratio;
+    const prevRatio = i > 0 ? ratioData[i - 1].ratio : ratio;
+    const delta = ratio - prevRatio;
+    const lsrTerm = Math.tanh(ratio - 1);
+    const deltaTerm = Math.tanh(delta);
+    const frTerm = Math.tanh(((avgFR ?? 0) * k));
+    const ss = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
+    scores.push(ss);
+  }
+  return scores;
+}
+
+/**
+ * 生成並渲染最近一週每小時情緒分數的折線圖
+ * 對五種幣別使用 Binance 的每小時多空比率和平均資金費率計算分數
+ */
+async function updateSentimentChart() {
+  const ctx = document.getElementById('sentimentChart').getContext('2d');
+  const coins = [
+    { symbol: 'BTCUSDT', ccy: 'BTC', name: '比特幣', color: '#ff6384' },
+    { symbol: 'ETHUSDT', ccy: 'ETH', name: '以太幣', color: '#36a2eb' },
+    { symbol: 'XRPUSDT', ccy: 'XRP', name: 'XRP', color: '#ffce56' },
+    { symbol: 'DOGEUSDT', ccy: 'DOGE', name: '狗狗幣', color: '#4bc0c0' },
+    { symbol: 'ADAUSDT', ccy: 'ADA', name: 'ADA', color: '#9966ff' }
+  ];
+  let labels = [];
+  const datasets = [];
+  // 取得每種幣的平均資金費率（採用最新值，不可取得歷史）
+  const avgFRs = await Promise.all(coins.map(async (coin) => {
+    const [bfr, ofr] = await Promise.all([
+      fetchBinanceFundingRate(coin.symbol),
+      fetchOKXFundingRate(`${coin.ccy}-USDT-SWAP`)
+    ]);
+    let avg = 0;
+    if (bfr != null && ofr != null) avg = (bfr + ofr) / 2;
+    else if (bfr != null) avg = bfr;
+    else if (ofr != null) avg = ofr;
+    return avg;
+  }));
+  // 分別取得每種幣的多空比率資料並計算情緒分數
+  for (let i = 0; i < coins.length; i++) {
+    const coin = coins[i];
+    const ratioData = await fetchBinanceRatioWeekly(coin.symbol);
+    if (ratioData.length === 0) continue;
+    if (labels.length === 0) {
+      labels = ratioData.map((d) => d.time);
+    }
+    const scores = calculateSentimentScores(ratioData, avgFRs[i]);
+    datasets.push({
+      label: coin.name,
+      data: scores,
+      borderColor: coin.color,
+      backgroundColor: coin.color,
+      fill: false,
+      tension: 0.2
+    });
+  }
+  // 若之前有生成過圖表，先銷毀
+  if (window.sentimentChartInstance) {
+    window.sentimentChartInstance.destroy();
+  }
+  window.sentimentChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        title: { display: false }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '時間' },
+          ticks: { autoSkip: true, maxTicksLimit: 12 }
+        },
+        y: {
+          title: { display: true, text: '情緒分數' },
+          min: -1,
+          max: 1
+        }
+      }
+    }
+  });
 }
 
 /**
