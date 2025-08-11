@@ -1,27 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加密貨幣資訊面板</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>虛擬貨幣市場儀表板</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px auto;
+            max-width: 900px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .small {
+            font-size: 0.8em;
+            color: #666;
+        }
+        #fngValue, #btcReserve {
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>加密貨幣資訊面板</h1>
-    </header>
-    <main>
-        <section id="fear-greed">
-            <h2>恐懼與貪婪指數</h2>
-            <p id="fg-index">載入中...</p>
-        </section>
-        <section id="btc-balance">
-            <h2>比特幣地址餘額</h2>
-            <p id="btc-balance-amount">載入中...</p>
-            <canvas id="btc-balance-chart"></canvas>
-        </section>
-    </main>
-    <script src="script.js"></script>
+    <h1>虛擬貨幣市場儀表板</h1>
+    <div class="section" id="fngSection">
+        <h2>恐懼與貪婪指數</h2>
+        <p id="fngValue">載入中...</p>
+    </div>
+    <div class="section" id="btcReserveSection">
+        <!-- 顯示指定比特幣地址的餘額。為避免困惑，直接標明地址。 -->
+        <h2>比特幣地址餘額：
+            <span style="font-size: 0.8em; word-break: break-all;">1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP</span>
+        </h2>
+        <p id="btcReserve">載入中...</p>
+    </div>
+    <div class="section" id="cryptoSection">
+        <h2>各虛擬貨幣價格、RSI與買賣區間</h2>
+        <table id="cryptoTable">
+            <thead>
+                <tr>
+                    <th>幣種</th>
+                    <th>最新價格 (USD)</th>
+                    <th>日線 RSI</th>
+                    <th>建議買入區間 (USD)</th>
+                    <th>建議賣出區間 (USD)</th>
+                    <th>建議動作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 資料會在 JavaScript 中插入 -->
+            </tbody>
+        </table>
+        <p class="small">價格與指標每分鐘更新一次；計算 RSI 時採用最近 14 日的日線資料；買賣區間參考最近 30 日最低價與最高價（做為支撐與壓力位）。</p>
+    </div>
+<script src="app.js"></script>
 </body>
 </html>
