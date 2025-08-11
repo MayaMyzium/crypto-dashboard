@@ -214,13 +214,17 @@ async function updateSentimentChart() {
     const coin = coins[i];
     const ratioData = await fetchBinanceRatioWeekly(coin.symbol);
     if (ratioData.length === 0) continue;
-    if (labels.length === 0) {
-      labels = ratioData.map((d) => d.time);
-    }
+    // 計算情緒分數並取樣每兩小時一筆，以加大水平間距
     const scores = calculateSentimentScores(ratioData, avgFRs[i]);
+    // 取樣：保留偶數索引，提高點與點之間的間距
+    const sampledScores = scores.filter((_, idx) => idx % 2 === 0);
+    const sampledTimes = ratioData.filter((_, idx) => idx % 2 === 0).map((d) => d.time);
+    if (labels.length === 0) {
+      labels = sampledTimes;
+    }
     datasets.push({
       label: coin.name,
-      data: scores,
+      data: sampledScores,
       borderColor: coin.color,
       backgroundColor: coin.color,
       fill: false,
@@ -241,10 +245,20 @@ async function updateSentimentChart() {
         legend: { position: 'top' },
         title: { display: false }
       },
+      elements: {
+        line: {
+          borderWidth: 1
+        },
+        point: {
+          radius: 0,
+          hitRadius: 6,
+          hoverRadius: 3
+        }
+      },
       scales: {
         x: {
           title: { display: true, text: '時間' },
-          ticks: { autoSkip: true, maxTicksLimit: 12 }
+          ticks: { autoSkip: true, maxTicksLimit: 6 }
         },
         y: {
           title: { display: true, text: '情緒分數' },
