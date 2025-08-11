@@ -9,34 +9,86 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
   const container = document.getElementById('analysis-container');
   coins.forEach((coin) => {
-    // 建立圖表容器
+    // 建立表格區塊
     const wrapper = document.createElement('div');
     wrapper.style.marginBottom = '2rem';
     const title = document.createElement('h3');
     title.textContent = `${coin.name} (${coin.symbol}/${coin.ccy})`;
-    const canvas = document.createElement('canvas');
-    canvas.id = `chart-${coin.ccy}`;
-    canvas.height = 250;
     wrapper.appendChild(title);
-    wrapper.appendChild(canvas);
+    const table = document.createElement('table');
+    table.className = 'analysis-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>分析</th></tr>`;
+    const tbody = document.createElement('tbody');
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
     container.appendChild(wrapper);
-    // 取得資料並繪製
-    updateAnalysis(coin).catch((err) => {
+    // 取得資料並填入表格
+    updateAnalysis(coin, tbody).catch((err) => {
       console.error('分析資料取得失敗', coin, err);
-      const ctx = canvas.getContext('2d');
-      ctx.font = '14px Arial';
-      ctx.fillText('無法取得資料', 10, 30);
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = '無法取得資料';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
     });
   });
 });
 
-async function updateAnalysis(coin) {
+async function updateAnalysis(coin, tbody) {
   // 同時取得幣安與 OKX 資料
   const [binance, okx] = await Promise.all([
     fetchBinanceRatio(coin.symbol),
     fetchOKXRatio(coin.ccy)
   ]);
-  drawAnalysisChart(coin.ccy, coin.name, binance, okx);
+  // 對 OKX 資料以時間為鍵建立 map
+  const okxMap = {};
+  okx.forEach((d) => {
+    okxMap[d.time] = d;
+  });
+  for (let i = 0; i < binance.length; i++) {
+    const row = document.createElement('tr');
+    const time = binance[i].time;
+    const bRatio = binance[i].ratio;
+    const bPrev = i > 0 ? binance[i - 1].ratio : bRatio;
+    const bDiff = bRatio - bPrev;
+    const okData = okxMap[time];
+    const oRatio = okData ? okData.ratio : null;
+    const oPrev = okData && okxMap[binance[i - 1]?.time] ? okxMap[binance[i - 1].time].ratio : oRatio;
+    const oDiff = oRatio != null && oPrev != null ? oRatio - oPrev : null;
+    // 分析：若二者皆 >1 則偏多；若皆 <1 則偏空；其餘為中性
+    let analysis = '';
+    if (bRatio > 1 && (oRatio == null || oRatio > 1)) analysis = '市場偏多';
+    else if (bRatio < 1 && (oRatio != null && oRatio < 1)) analysis = '市場偏空';
+    else analysis = '中性';
+    // 時間
+    const tdTime = document.createElement('td');
+    tdTime.textContent = time;
+    row.appendChild(tdTime);
+    // Binance 比率
+    const tdBRatio = document.createElement('td');
+    tdBRatio.textContent = bRatio.toFixed(3);
+    row.appendChild(tdBRatio);
+    // Binance 變化
+    const tdBDiff = document.createElement('td');
+    tdBDiff.textContent = i === 0 ? '-' : bDiff.toFixed(3);
+    row.appendChild(tdBDiff);
+    // OKX 比率
+    const tdORatio = document.createElement('td');
+    tdORatio.textContent = oRatio != null ? oRatio.toFixed(3) : 'N/A';
+    row.appendChild(tdORatio);
+    // OKX 變化
+    const tdODiff = document.createElement('td');
+    tdODiff.textContent = oDiff != null && i > 0 ? oDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
+    row.appendChild(tdODiff);
+    // 分析
+    const tdAnalysis = document.createElement('td');
+    tdAnalysis.textContent = analysis;
+    row.appendChild(tdAnalysis);
+    tbody.appendChild(row);
+  }
 }
 
 /**
@@ -46,9 +98,11 @@ async function updateAnalysis(coin) {
  */
 async function fetchBinanceRatio(symbol) {
   try {
-    const url = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=50`;
+    // period=5m 取得5分鐘更新資料；Binance 不提供 1m 多空比
+    const url = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=20`;
     const res = await fetch(url);
     const data = await res.json();
+    // 轉換成時間、比率
     return (data || []).map((d) => ({
       time: new Date(parseInt(d.timestamp)).toLocaleTimeString('zh-TW', { hour12: false }),
       ratio: parseFloat(d.longShortRatio)
@@ -72,7 +126,6 @@ async function fetchOKXRatio(ccy) {
     const url = `https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${ccy}&period=5m&begin=${begin}&end=${end}`;
     const res = await fetch(url);
     const json = await res.json();
-    // 部分環境可能無法取得或需要 API KEY，若失敗則返回空
     if (!json || !json.data || json.data.length === 0) {
       return [];
     }
@@ -86,76 +139,4 @@ async function fetchOKXRatio(ccy) {
   }
 }
 
-let analysisCharts = {};
-function drawAnalysisChart(ccy, name, binanceData, okxData) {
-  const ctx = document.getElementById(`chart-${ccy}`).getContext('2d');
-  const labels = binanceData.map((d) => d.time);
-  const bData = binanceData.map((d) => d.ratio);
-  // OKX 可能日期數量與 Binance 不同；使用 binance labels 對齊
-  const okxMap = {};
-  okxData.forEach((d) => {
-    okxMap[d.time] = d.ratio;
-  });
-  const oData = labels.map((t) => (okxMap[t] !== undefined ? okxMap[t] : null));
-  if (analysisCharts[ccy]) {
-    // 更新
-    analysisCharts[ccy].data.labels = labels;
-    analysisCharts[ccy].data.datasets[0].data = bData;
-    analysisCharts[ccy].data.datasets[1].data = oData;
-    analysisCharts[ccy].update();
-    return;
-  }
-  analysisCharts[ccy] = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: `${name} 多空比 (Binance)`,
-          data: bData,
-          borderColor: '#2980b9',
-          backgroundColor: 'rgba(41, 128, 185, 0.2)',
-          tension: 0.1,
-          fill: false,
-          pointRadius: 0
-        },
-        {
-          label: `${name} 多空比 (OKX)`,
-          data: oData,
-          borderColor: '#e67e22',
-          backgroundColor: 'rgba(230, 126, 34, 0.2)',
-          tension: 0.1,
-          fill: false,
-          pointRadius: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: {
-            maxTicksLimit: 6,
-            maxRotation: 0,
-            minRotation: 0
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: '多／空比'
-          }
-        }
-      },
-      plugins: {
-        legend: { display: true },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`
-          }
-        }
-      }
-    }
-  });
-}
+// 本頁不再使用圖表，改為表格顯示，故 drawAnalysisChart 移除
