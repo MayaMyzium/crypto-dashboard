@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>永續合約做多做空分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>永續合約做多／做空分析</h1>
+      <p>
+        本頁面統整幣安與 OKX 兩大交易所的做多／做空永續合約資訊，並以圖表形式呈現每分鐘的變化趨勢。
+      </p>
+    </header>
+    <section>
+      <p>
+        下面每個區塊均包含兩條曲線：藍色為幣安（Binance）永續合約的全局多空帳戶比率，橘色為 OKX 的合約多空持倉人數比【736105284045409†L117-L137】【503583044887734†L293-L304】。比例大於 1 表示偏多，比例小於 1 表示偏空。
+      </p>
+      <div id="analysis-container">
+        <!-- 動態產生圖表 -->
+      </div>
+    </section>
+    <section>
+      <a href="index.html" class="btn">返回儀表板</a>
+    </section>
+    <script src="analysis.js"></script>
+  </body>
+</html>
