@@ -196,7 +196,9 @@ async function updateCryptos() {
     { id: 'ethereum', symbol: 'ETH', name: '以太幣' },
     { id: 'ripple', symbol: 'XRP', name: 'XRP' },
     { id: 'dogecoin', symbol: 'DOGE', name: '狗狗幣' },
-    { id: 'cardano', symbol: 'ADA', name: 'ADA' }
+    { id: 'cardano', symbol: 'ADA', name: 'ADA' },
+    // 新增 Solana 幣種
+    { id: 'solana', symbol: 'SOL', name: '索拉納' }
   ];
   const tbody = document.getElementById('crypto-tbody');
   tbody.innerHTML = '';
