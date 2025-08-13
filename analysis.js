@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const table = document.createElement('table');
     table.className = 'analysis-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>Binance 資金費率</th><th>OKX 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
+    // 更新表頭：使用 Binance、Bybit、Coinbase 資金費率三列
+    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>Binance 資金費率</th><th>Bybit 資金費率</th><th>Coinbase 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
     const tbody = document.createElement('tbody');
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -31,7 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('分析資料取得失敗', coin, err);
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 9;
+      // 表格包含 10 個欄位
+      td.colSpan = 10;
       td.textContent = '無法取得資料';
       tr.appendChild(td);
       tbody.appendChild(tr);
@@ -45,11 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function updateAnalysis(coin, tbody) {
   // 同時取得幣安與 OKX 多空比率和資金費率
-  const [binanceRatios, okxRatios, binanceFR, okxFR] = await Promise.all([
+  const [binanceRatios, okxRatios, binanceFR, bybitFR, coinbaseFR] = await Promise.all([
     fetchBinanceRatio(coin.symbol),
     fetchOKXRatio(coin.ccy),
     fetchBinanceFundingRate(coin.symbol),
-    fetchOKXFundingRate(`${coin.ccy}-USDT-SWAP`)
+    fetchBybitFundingRate(coin.symbol),
+    fetchCoinbaseFundingRate(`${coin.ccy}-USDT-SWAP`)
   ]);
   // 只取最近三筆資料
   const binance = binanceRatios.slice(-3);
@@ -78,8 +81,12 @@ async function updateAnalysis(coin, tbody) {
     const k = 10000;
     const lsrTerm = Math.tanh(bRatio - 1);
     const deltaTerm = Math.tanh(bDiff);
-    // 使用兩個平台平均資金費率作為 FR
-    const avgFR = (binanceFR + okxFR) / 2;
+    // 使用 Binance、Bybit、Coinbase 三個平臺的資金費率平均作為 FR
+    const frVals = [];
+    if (binanceFR !== null) frVals.push(binanceFR);
+    if (bybitFR !== null) frVals.push(bybitFR);
+    if (coinbaseFR !== null) frVals.push(coinbaseFR);
+    const avgFR = frVals.length > 0 ? frVals.reduce((a, b) => a + b, 0) / frVals.length : 0;
     const frTerm = Math.tanh(avgFR * k);
     const sentimentScore = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
     // 分析：根據比率判斷
@@ -111,10 +118,14 @@ async function updateAnalysis(coin, tbody) {
     const tdBFR = document.createElement('td');
     tdBFR.textContent = binanceFR !== null ? binanceFR.toFixed(6) : 'N/A';
     row.appendChild(tdBFR);
-    // OKX 資金費率
-    const tdOFR = document.createElement('td');
-    tdOFR.textContent = okxFR !== null ? okxFR.toFixed(6) : 'N/A';
-    row.appendChild(tdOFR);
+    // Bybit 資金費率
+    const tdBybitFR = document.createElement('td');
+    tdBybitFR.textContent = bybitFR !== null ? bybitFR.toFixed(6) : 'N/A';
+    row.appendChild(tdBybitFR);
+    // Coinbase 資金費率
+    const tdCoinbaseFR = document.createElement('td');
+    tdCoinbaseFR.textContent = coinbaseFR !== null ? coinbaseFR.toFixed(6) : 'N/A';
+    row.appendChild(tdCoinbaseFR);
     // 情緒分數
     const tdSS = document.createElement('td');
     tdSS.textContent = sentimentScore.toFixed(3);
@@ -203,14 +214,16 @@ async function updateSentimentChart() {
   const datasets = [];
   // 取得每種幣的平均資金費率（採用最新值，不可取得歷史）
   const avgFRs = await Promise.all(coins.map(async (coin) => {
-    const [bfr, ofr] = await Promise.all([
+    const [bfr, byfr, cbfr] = await Promise.all([
       fetchBinanceFundingRate(coin.symbol),
-      fetchOKXFundingRate(`${coin.ccy}-USDT-SWAP`)
+      fetchBybitFundingRate(coin.symbol),
+      fetchCoinbaseFundingRate(`${coin.ccy}-USDT-SWAP`)
     ]);
-    let avg = 0;
-    if (bfr != null && ofr != null) avg = (bfr + ofr) / 2;
-    else if (bfr != null) avg = bfr;
-    else if (ofr != null) avg = ofr;
+    const frs = [];
+    if (bfr != null) frs.push(bfr);
+    if (byfr != null) frs.push(byfr);
+    if (cbfr != null) frs.push(cbfr);
+    const avg = frs.length > 0 ? frs.reduce((a, b) => a + b, 0) / frs.length : 0;
     return avg;
   }));
   // 分別取得每種幣的多空比率資料並計算情緒分數
@@ -368,6 +381,44 @@ async function fetchOKXFundingRate(instId) {
     return null;
   } catch (e) {
     console.error('fetchOKXFundingRate error', e);
+    return null;
+  }
+}
+
+/**
+ * 從 Bybit 取得最新資金費率
+ * API：GET https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1
+ * 返回的資料中 result.list[0].fundingRate 為字串
+ * @param {string} symbol 合約代碼，例如 BTCUSDT
+ */
+async function fetchBybitFundingRate(symbol) {
+  try {
+    const url = `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=1`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.result && Array.isArray(json.result.list) && json.result.list.length > 0) {
+      const frStr = json.result.list[0].fundingRate;
+      const fr = parseFloat(frStr);
+      if (!isNaN(fr)) return fr;
+    }
+    return null;
+  } catch (e) {
+    console.error('fetchBybitFundingRate error', e);
+    return null;
+  }
+}
+
+/**
+ * 從 Coinbase 取得最新資金費率
+ * Coinbase 公開 API 可能不提供永續合約資金費率，因此此函式預設返回 null。
+ * @param {string} instId 合約代碼，例如 BTC-USDT-SWAP
+ */
+async function fetchCoinbaseFundingRate(instId) {
+  try {
+    // Coinbase Derivatives funding rates可能需要認證，無法直接取得
+    return null;
+  } catch (e) {
+    console.error('fetchCoinbaseFundingRate error', e);
     return null;
   }
 }
