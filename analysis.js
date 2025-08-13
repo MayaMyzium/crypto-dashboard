@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     { symbol: 'ETHUSDT', ccy: 'ETH', name: '以太幣' },
     { symbol: 'XRPUSDT', ccy: 'XRP', name: 'XRP' },
     { symbol: 'DOGEUSDT', ccy: 'DOGE', name: '狗狗幣' },
-    { symbol: 'ADAUSDT', ccy: 'ADA', name: 'ADA' }
+    { symbol: 'ADAUSDT', ccy: 'ADA', name: 'ADA' },
+    // 新增 Solana
+    { symbol: 'SOLUSDT', ccy: 'SOL', name: '索拉納' }
   ];
   const container = document.getElementById('analysis-container');
   coins.forEach((coin) => {
@@ -193,7 +195,9 @@ async function updateSentimentChart() {
     { symbol: 'ETHUSDT', ccy: 'ETH', name: '以太幣', color: '#36a2eb' },
     { symbol: 'XRPUSDT', ccy: 'XRP', name: 'XRP', color: '#ffce56' },
     { symbol: 'DOGEUSDT', ccy: 'DOGE', name: '狗狗幣', color: '#4bc0c0' },
-    { symbol: 'ADAUSDT', ccy: 'ADA', name: 'ADA', color: '#9966ff' }
+    { symbol: 'ADAUSDT', ccy: 'ADA', name: 'ADA', color: '#9966ff' },
+    // 新增 Solana，用不同顏色
+    { symbol: 'SOLUSDT', ccy: 'SOL', name: '索拉納', color: '#00c49a' }
   ];
   let labels = [];
   const datasets = [];
