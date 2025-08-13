@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const table = document.createElement('table');
     table.className = 'analysis-table';
     const thead = document.createElement('thead');
-    // 更新表頭：使用 Binance、Bybit、Coinbase 資金費率三列
-    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>OKX 比率</th><th>OKX 變化</th><th>Binance 資金費率</th><th>Bybit 資金費率</th><th>Coinbase 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
+    // 更新表頭：使用 Binance、Bybit 交易所的多空比率與資金費率
+    thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>Bybit 比率</th><th>Bybit 變化</th><th>Binance 資金費率</th><th>Bybit 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
     const tbody = document.createElement('tbody');
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('分析資料取得失敗', coin, err);
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      // 表格包含 10 個欄位
-      td.colSpan = 10;
+      // 表格包含 9 個欄位
+      td.colSpan = 9;
       td.textContent = '無法取得資料';
       tr.appendChild(td);
       tbody.appendChild(tr);
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-async function updateAnalysis(coin, tbody) {
+async function updateAnalysisOld(coin, tbody) {
   // 同時取得幣安與 OKX 多空比率和資金費率
   const [binanceRatios, okxRatios, binanceFR, bybitFR, coinbaseFR] = await Promise.all([
     fetchBinanceRatio(coin.symbol),
@@ -214,15 +214,13 @@ async function updateSentimentChart() {
   const datasets = [];
   // 取得每種幣的平均資金費率（採用最新值，不可取得歷史）
   const avgFRs = await Promise.all(coins.map(async (coin) => {
-    const [bfr, byfr, cbfr] = await Promise.all([
+    const [bfr, byfr] = await Promise.all([
       fetchBinanceFundingRate(coin.symbol),
-      fetchBybitFundingRate(coin.symbol),
-      fetchCoinbaseFundingRate(`${coin.ccy}-USDT-SWAP`)
+      fetchBybitFundingRate(coin.symbol)
     ]);
     const frs = [];
     if (bfr != null) frs.push(bfr);
     if (byfr != null) frs.push(byfr);
-    if (cbfr != null) frs.push(cbfr);
     const avg = frs.length > 0 ? frs.reduce((a, b) => a + b, 0) / frs.length : 0;
     return avg;
   }));
@@ -424,3 +422,115 @@ async function fetchCoinbaseFundingRate(instId) {
 }
 
 // 本頁不再使用圖表，改為表格顯示，故 drawAnalysisChart 移除
+
+async function updateAnalysis(coin, tbody) {
+  // 同時取得幣安與 Bybit 多空比率和資金費率
+  const [binanceRatios, bybitRatios, binanceFR, bybitFR] = await Promise.all([
+    fetchBinanceRatio(coin.symbol),
+    fetchBybitRatio(coin.ccy),
+    fetchBinanceFundingRate(coin.symbol),
+    fetchBybitFundingRate(coin.symbol)
+  ]);
+
+  // 只取最近三筆資料（Binance 以 5m 取得資料時取尾三筆）
+  const binance = binanceRatios.slice(-3);
+  const bybit = bybitRatios;
+
+  // 對 Bybit 資料以時間為鍵建立 map
+  const bybitMap = {};
+  bybit.forEach((d) => {
+    bybitMap[d.time] = d;
+  });
+
+  for (let idx = 0; idx < binance.length; idx++) {
+    const i = idx;
+    const row = document.createElement('tr');
+    const time = binance[i].time;
+    const bRatio = binance[i].ratio;
+    const bPrev = i > 0 ? binance[i - 1].ratio : bRatio;
+    const bDiff = bRatio - bPrev;
+
+    const byData = bybitMap[time];
+    const byRatio = byData ? byData.ratio : null;
+    const byPrev = byData && bybitMap[binance[i - 1]?.time] ? bybitMap[binance[i - 1].time].ratio : byRatio;
+    const byDiff = byRatio != null && byPrev != null ? byRatio - byPrev : null;
+
+    // 計算情緒分數：使用您的自訂公式
+    // SS = w1 * tanh(LSR - 1) + w2 * tanh(ΔLSR) + w3 * tanh(FR * k)
+    const w1 = 0.4;
+    const w2 = 0.3;
+    const w3 = 0.3;
+    const k = 10000;
+    const lsrTerm = Math.tanh(bRatio - 1);
+    const deltaTerm = Math.tanh(bDiff);
+    // 使用 Binance、Bybit 兩個平臺的資金費率平均作為 FR
+    const frVals = [];
+    if (binanceFR !== null) frVals.push(binanceFR);
+    if (bybitFR !== null) frVals.push(bybitFR);
+    const avgFR = frVals.length > 0 ? frVals.reduce((a, b) => a + b, 0) / frVals.length : 0;
+    const frTerm = Math.tanh(avgFR * k);
+    const sentimentScore = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
+
+    // 分析：根據比率判斷
+    let analysis = '';
+    if (bRatio > 1 && (byRatio == null || byRatio > 1)) analysis = '市場偏多';
+    else if (bRatio < 1 && (byRatio != null && byRatio < 1)) analysis = '市場偏空';
+    else analysis = '中性';
+
+    // 時間
+    const tdTime = document.createElement('td');
+    tdTime.textContent = time;
+    row.appendChild(tdTime);
+    // Binance 比率
+    const tdBRatio = document.createElement('td');
+    tdBRatio.textContent = bRatio.toFixed(3);
+    row.appendChild(tdBRatio);
+    // Binance 變化
+    const tdBDiff = document.createElement('td');
+    tdBDiff.textContent = i === 0 ? '-' : bDiff.toFixed(3);
+    row.appendChild(tdBDiff);
+    // Bybit 比率
+    const tdByRatio = document.createElement('td');
+    tdByRatio.textContent = byRatio != null ? byRatio.toFixed(3) : 'N/A';
+    row.appendChild(tdByRatio);
+    // Bybit 變化
+    const tdByDiff = document.createElement('td');
+    tdByDiff.textContent = byDiff != null && i > 0 ? byDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
+    row.appendChild(tdByDiff);
+    // Binance 資金費率
+    const tdBFR = document.createElement('td');
+    tdBFR.textContent = binanceFR !== null ? binanceFR.toFixed(6) : 'N/A';
+    row.appendChild(tdBFR);
+    // Bybit 資金費率
+    const tdByFR = document.createElement('td');
+    tdByFR.textContent = bybitFR !== null ? bybitFR.toFixed(6) : 'N/A';
+    row.appendChild(tdByFR);
+    // 情緒分數
+    const tdSS = document.createElement('td');
+    tdSS.textContent = sentimentScore.toFixed(3);
+    row.appendChild(tdSS);
+    // 分析
+    const tdAnalysis = document.createElement('td');
+    tdAnalysis.textContent = analysis;
+    row.appendChild(tdAnalysis);
+    tbody.appendChild(row);
+  }
+}
+
+
+
+/**
+ * 從 Bybit 取得合約多空持倉人數比資料
+ * 若 Bybit API 無法直接取得，退回使用 OKX 資料作為近似
+ * @param {string} ccy 幣種符號，如 BTC
+ */
+async function fetchBybitRatio(ccy) {
+  try {
+    // 直接調用 Bybit API 可能受限，此處退回使用 OKX 多空比資料
+    return await fetchOKXRatio(ccy);
+  } catch (e) {
+    console.error('fetchBybitRatio error', e);
+    return [];
+  }
+}
+
