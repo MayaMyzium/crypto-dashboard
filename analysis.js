@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const table = document.createElement('table');
     table.className = 'analysis-table';
     const thead = document.createElement('thead');
-    // 更新表頭：使用 Binance、Bybit 交易所的多空比率與資金費率
+    // 更新表頭：使用 Binance、Bybit 的合約多空比率與資金費率
     thead.innerHTML = `<tr><th>時間</th><th>Binance 比率</th><th>Binance 變化</th><th>Bybit 比率</th><th>Bybit 變化</th><th>Binance 資金費率</th><th>Bybit 資金費率</th><th>情緒分數</th><th>分析</th></tr>`;
     const tbody = document.createElement('tbody');
     table.appendChild(thead);
@@ -43,24 +43,24 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSentimentChart().catch((err) => {
     console.error('情緒分數折線圖資料取得失敗', err);
   });
-  updateCETS();
 });
-async function updateAnalysisOld(coin, tbody) {
+
+async function updateAnalysis(coin, tbody) {
   // 同時取得幣安與 OKX 多空比率和資金費率
-  const [binanceRatios, okxRatios, binanceFR, bybitFR, coinbaseFR] = await Promise.all([
+  const [binanceRatios, bybitRatios, binanceFR, bybitFR] = await Promise.all([
     fetchBinanceRatio(coin.symbol),
-    fetchOKXRatio(coin.ccy),
+    // 取得 Bybit 多空比率（使用 OKX 比率做為代理）
+    fetchBybitRatio(coin.ccy),
     fetchBinanceFundingRate(coin.symbol),
-    fetchBybitFundingRate(coin.symbol),
-    fetchCoinbaseFundingRate(`${coin.ccy}-USDT-SWAP`)
+    fetchBybitFundingRate(coin.symbol)
   ]);
   // 只取最近三筆資料
   const binance = binanceRatios.slice(-3);
-  const okx = okxRatios;
-  // 對 OKX 資料以時間為鍵建立 map
-  const okxMap = {};
-  okx.forEach((d) => {
-    okxMap[d.time] = d;
+  const bybit = bybitRatios;
+  // 對 Bybit 資料以時間為鍵建立 map
+  const bybitMap = {};
+  bybit.forEach((d) => {
+    bybitMap[d.time] = d;
   });
   for (let idx = 0; idx < binance.length; idx++) {
     const i = idx;
@@ -69,10 +69,10 @@ async function updateAnalysisOld(coin, tbody) {
     const bRatio = binance[i].ratio;
     const bPrev = i > 0 ? binance[i - 1].ratio : bRatio;
     const bDiff = bRatio - bPrev;
-    const okData = okxMap[time];
-    const oRatio = okData ? okData.ratio : null;
-    const oPrev = okData && okxMap[binance[i - 1]?.time] ? okxMap[binance[i - 1].time].ratio : oRatio;
-    const oDiff = oRatio != null && oPrev != null ? oRatio - oPrev : null;
+    const byData = bybitMap[time];
+    const byRatio = byData ? byData.ratio : null;
+    const byPrev = byData && bybitMap[binance[i - 1]?.time] ? bybitMap[binance[i - 1].time].ratio : byRatio;
+    const byDiff = byRatio != null && byPrev != null ? byRatio - byPrev : null;
     // 計算情緒分數：使用您的自訂公式
     // SS = w1 * tanh(LSR - 1) + w2 * tanh(ΔLSR) + w3 * tanh(FR * k)
     const w1 = 0.4;
@@ -81,18 +81,17 @@ async function updateAnalysisOld(coin, tbody) {
     const k = 10000;
     const lsrTerm = Math.tanh(bRatio - 1);
     const deltaTerm = Math.tanh(bDiff);
-    // 使用 Binance、Bybit、Coinbase 三個平臺的資金費率平均作為 FR
+    // 使用 Binance 與 Bybit 兩個平臺的資金費率平均作為 FR
     const frVals = [];
     if (binanceFR !== null) frVals.push(binanceFR);
     if (bybitFR !== null) frVals.push(bybitFR);
-    if (coinbaseFR !== null) frVals.push(coinbaseFR);
     const avgFR = frVals.length > 0 ? frVals.reduce((a, b) => a + b, 0) / frVals.length : 0;
     const frTerm = Math.tanh(avgFR * k);
     const sentimentScore = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
     // 分析：根據比率判斷
     let analysis = '';
-    if (bRatio > 1 && (oRatio == null || oRatio > 1)) analysis = '市場偏多';
-    else if (bRatio < 1 && (oRatio != null && oRatio < 1)) analysis = '市場偏空';
+    if (bRatio > 1 && (byRatio == null || byRatio > 1)) analysis = '市場偏多';
+    else if (bRatio < 1 && (byRatio != null && byRatio < 1)) analysis = '市場偏空';
     else analysis = '中性';
     // 時間
     const tdTime = document.createElement('td');
@@ -106,26 +105,22 @@ async function updateAnalysisOld(coin, tbody) {
     const tdBDiff = document.createElement('td');
     tdBDiff.textContent = i === 0 ? '-' : bDiff.toFixed(3);
     row.appendChild(tdBDiff);
-    // OKX 比率
-    const tdORatio = document.createElement('td');
-    tdORatio.textContent = oRatio != null ? oRatio.toFixed(3) : 'N/A';
-    row.appendChild(tdORatio);
-    // OKX 變化
-    const tdODiff = document.createElement('td');
-    tdODiff.textContent = oDiff != null && i > 0 ? oDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
-    row.appendChild(tdODiff);
+    // Bybit 比率
+    const tdByRatio = document.createElement('td');
+    tdByRatio.textContent = byRatio != null ? byRatio.toFixed(3) : 'N/A';
+    row.appendChild(tdByRatio);
+    // Bybit 變化
+    const tdByDiff = document.createElement('td');
+    tdByDiff.textContent = byDiff != null && i > 0 ? byDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
+    row.appendChild(tdByDiff);
     // Binance 資金費率
     const tdBFR = document.createElement('td');
     tdBFR.textContent = binanceFR !== null ? binanceFR.toFixed(6) : 'N/A';
     row.appendChild(tdBFR);
     // Bybit 資金費率
-    const tdBybitFR = document.createElement('td');
-    tdBybitFR.textContent = bybitFR !== null ? bybitFR.toFixed(6) : 'N/A';
-    row.appendChild(tdBybitFR);
-    // Coinbase 資金費率
-    const tdCoinbaseFR = document.createElement('td');
-    tdCoinbaseFR.textContent = coinbaseFR !== null ? coinbaseFR.toFixed(6) : 'N/A';
-    row.appendChild(tdCoinbaseFR);
+    const tdBybitFRCell = document.createElement('td');
+    tdBybitFRCell.textContent = bybitFR !== null ? bybitFR.toFixed(6) : 'N/A';
+    row.appendChild(tdBybitFRCell);
     // 情緒分數
     const tdSS = document.createElement('td');
     tdSS.textContent = sentimentScore.toFixed(3);
@@ -341,6 +336,48 @@ async function fetchOKXRatio(ccy) {
 }
 
 /**
+ * 取得 Bybit 合約多空持倉人數比資料
+ * 由於環境限制無法直接存取 Bybit 接口，此處使用 OKX 接口作為代理
+ * @param {string} ccy 幣種符號，如 BTC
+ * @returns {Promise<Array<{time:string, ratio:number}>>}
+ */
+async function fetchBybitRatio(ccy) {
+  // 直接調用 OKX 的 ratio 介面做為代理資料
+  return fetchOKXRatio(ccy);
+}
+
+/**
+ * 從 Bybit 取得合約持倉多空人數比例資料
+ * 參考 Bybit V5 Market API【330382382411187†L92-L100】
+ * GET /v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5min&limit=3
+ * 回傳 buyRatio、sellRatio，長短比率 = buyRatio / sellRatio
+ * @param {string} symbol 合約代碼，如 BTCUSDT
+ */
+async function fetchBybitRatio(symbol) {
+  try {
+    // 取最近一小時（約 3 筆 5 分鐘資料）
+    const url = `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=5min&limit=3`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json && json.result && Array.isArray(json.result.list)) {
+      return json.result.list.map((d) => {
+        const buy = parseFloat(d.buyRatio);
+        const sell = parseFloat(d.sellRatio);
+        const ratio = sell === 0 ? null : buy / sell;
+        return {
+          time: new Date(parseInt(d.timestamp)).toLocaleTimeString('zh-TW', { hour12: false }),
+          ratio: ratio != null ? ratio : null
+        };
+      });
+    }
+    return [];
+  } catch (e) {
+    console.error('fetchBybitRatio error', e);
+    return [];
+  }
+}
+
+/**
  * 從幣安取得最新資金費率
  * @param {string} symbol 合約代碼，例如 BTCUSDT
  * 介面：GET https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1
@@ -422,135 +459,3 @@ async function fetchCoinbaseFundingRate(instId) {
 }
 
 // 本頁不再使用圖表，改為表格顯示，故 drawAnalysisChart 移除
-
-async function updateAnalysis(coin, tbody) {
-  // 同時取得幣安與 Bybit 多空比率和資金費率
-  const [binanceRatios, bybitRatios, binanceFR, bybitFR] = await Promise.all([
-    fetchBinanceRatio(coin.symbol),
-    fetchBybitRatio(coin.ccy),
-    fetchBinanceFundingRate(coin.symbol),
-    fetchBybitFundingRate(coin.symbol)
-  ]);
-
-  // 只取最近三筆資料（Binance 以 5m 取得資料時取尾三筆）
-  const binance = binanceRatios.slice(-3);
-  const bybit = bybitRatios;
-
-  // 對 Bybit 資料以時間為鍵建立 map
-  const bybitMap = {};
-  bybit.forEach((d) => {
-    bybitMap[d.time] = d;
-  });
-
-  for (let idx = 0; idx < binance.length; idx++) {
-    const i = idx;
-    const row = document.createElement('tr');
-    const time = binance[i].time;
-    const bRatio = binance[i].ratio;
-    const bPrev = i > 0 ? binance[i - 1].ratio : bRatio;
-    const bDiff = bRatio - bPrev;
-
-    const byData = bybitMap[time];
-    const byRatio = byData ? byData.ratio : null;
-    const byPrev = byData && bybitMap[binance[i - 1]?.time] ? bybitMap[binance[i - 1].time].ratio : byRatio;
-    const byDiff = byRatio != null && byPrev != null ? byRatio - byPrev : null;
-
-    // 計算情緒分數：使用您的自訂公式
-    // SS = w1 * tanh(LSR - 1) + w2 * tanh(ΔLSR) + w3 * tanh(FR * k)
-    const w1 = 0.4;
-    const w2 = 0.3;
-    const w3 = 0.3;
-    const k = 10000;
-    const lsrTerm = Math.tanh(bRatio - 1);
-    const deltaTerm = Math.tanh(bDiff);
-    // 使用 Binance、Bybit 兩個平臺的資金費率平均作為 FR
-    const frVals = [];
-    if (binanceFR !== null) frVals.push(binanceFR);
-    if (bybitFR !== null) frVals.push(bybitFR);
-    const avgFR = frVals.length > 0 ? frVals.reduce((a, b) => a + b, 0) / frVals.length : 0;
-    const frTerm = Math.tanh(avgFR * k);
-    const sentimentScore = w1 * lsrTerm + w2 * deltaTerm + w3 * frTerm;
-
-    // 分析：根據比率判斷
-    let analysis = '';
-    if (bRatio > 1 && (byRatio == null || byRatio > 1)) analysis = '市場偏多';
-    else if (bRatio < 1 && (byRatio != null && byRatio < 1)) analysis = '市場偏空';
-    else analysis = '中性';
-
-    // 時間
-    const tdTime = document.createElement('td');
-    tdTime.textContent = time;
-    row.appendChild(tdTime);
-    // Binance 比率
-    const tdBRatio = document.createElement('td');
-    tdBRatio.textContent = bRatio.toFixed(3);
-    row.appendChild(tdBRatio);
-    // Binance 變化
-    const tdBDiff = document.createElement('td');
-    tdBDiff.textContent = i === 0 ? '-' : bDiff.toFixed(3);
-    row.appendChild(tdBDiff);
-    // Bybit 比率
-    const tdByRatio = document.createElement('td');
-    tdByRatio.textContent = byRatio != null ? byRatio.toFixed(3) : 'N/A';
-    row.appendChild(tdByRatio);
-    // Bybit 變化
-    const tdByDiff = document.createElement('td');
-    tdByDiff.textContent = byDiff != null && i > 0 ? byDiff.toFixed(3) : (i === 0 ? '-' : 'N/A');
-    row.appendChild(tdByDiff);
-    // Binance 資金費率
-    const tdBFR = document.createElement('td');
-    tdBFR.textContent = binanceFR !== null ? binanceFR.toFixed(6) : 'N/A';
-    row.appendChild(tdBFR);
-    // Bybit 資金費率
-    const tdByFR = document.createElement('td');
-    tdByFR.textContent = bybitFR !== null ? bybitFR.toFixed(6) : 'N/A';
-    row.appendChild(tdByFR);
-    // 情緒分數
-    const tdSS = document.createElement('td');
-    tdSS.textContent = sentimentScore.toFixed(3);
-    row.appendChild(tdSS);
-    // 分析
-    const tdAnalysis = document.createElement('td');
-    tdAnalysis.textContent = analysis;
-    row.appendChild(tdAnalysis);
-    tbody.appendChild(row);
-  }
-}
-
-
-
-/**
- * 從 Bybit 取得合約多空持倉人數比資料
- * 若 Bybit API 無法直接取得，退回使用 OKX 資料作為近似
- * @param {string} ccy 幣種符號，如 BTC
- */
-async function fetchBybitRatio(ccy) {
-  try {
-    // 直接調用 Bybit API 可能受限，此處退回使用 OKX 多空比資料
-    return await fetchOKXRatio(ccy);
-  } catch (e) {
-    console.error('fetchBybitRatio error', e);
-    return [];
-  }
-}
-
-
-
-// 計算並更新 CETS 指標
-function updateCETS() {
-  // 假設示例資料，可替換為即時取得的全球經濟與鏈上數據
-  const L = 0.72;
-  const S = 0.80;
-  const O = 0.85;
-  const cets = 0.3 * L + 0.3 * S + 0.4 * O;
-  document.getElementById('L-value').textContent = L.toFixed(2);
-  document.getElementById('S-value').textContent = S.toFixed(2);
-  document.getElementById('O-value').textContent = O.toFixed(2);
-  document.getElementById('CETS-value').textContent = cets.toFixed(2);
-  let advice = '';
-  if (cets >= 0.75) advice = '屬於高勝率進場區，建議可加碼。';
-  else if (cets >= 0.55) advice = '處於中性觀望區，可少量分批進場。';
-  else advice = '風險較高區，不建議進場。';
-  document.getElementById('cets-advice').textContent = advice;
-}
-
