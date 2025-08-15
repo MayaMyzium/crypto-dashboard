@@ -27,7 +27,43 @@
       <div class="chart-container" style="height: 300px;">
         <canvas id="sentimentChart"></canvas>
       </div>
+    </section>    <section>
+      <h2>CETS 指標分析</h2>
+      <p>以下計算使用宏觀流動性指數 (L)、市場風險情緒指數 (S) 以及鏈上數據指標 (O) 組合而成的 Crypto Entry Timing Score (CETS)，範圍 0 ~ 1，值越高代表越適合進場。</p>
+      <table class="analysis-table">
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>值</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>L (流動性)</td>
+            <td id="L-value">--</td>
+            <td>全球流動性指數 (0~1)</td>
+          </tr>
+          <tr>
+            <td>S (風險情緒)</td>
+            <td id="S-value">--</td>
+            <td>市場風險情緒指數 (0~1)</td>
+          </tr>
+          <tr>
+            <td>O (鏈上數據)</td>
+            <td id="O-value">--</td>
+            <td>鏈上指標 (0~1)</td>
+          </tr>
+          <tr>
+            <td>CETS</td>
+            <td id="CETS-value">--</td>
+            <td>綜合評分 (0~1)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p id="cets-advice"></p>
     </section>
+
     <section>
       <a href="index.html" class="btn">返回儀表板</a>
     </section>

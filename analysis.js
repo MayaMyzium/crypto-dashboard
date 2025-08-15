@@ -43,8 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSentimentChart().catch((err) => {
     console.error('情緒分數折線圖資料取得失敗', err);
   });
+  updateCETS();
 });
-
 async function updateAnalysisOld(coin, tbody) {
   // 同時取得幣安與 OKX 多空比率和資金費率
   const [binanceRatios, okxRatios, binanceFR, bybitFR, coinbaseFR] = await Promise.all([
@@ -532,5 +532,25 @@ async function fetchBybitRatio(ccy) {
     console.error('fetchBybitRatio error', e);
     return [];
   }
+}
+
+
+
+// 計算並更新 CETS 指標
+function updateCETS() {
+  // 假設示例資料，可替換為即時取得的全球經濟與鏈上數據
+  const L = 0.72;
+  const S = 0.80;
+  const O = 0.85;
+  const cets = 0.3 * L + 0.3 * S + 0.4 * O;
+  document.getElementById('L-value').textContent = L.toFixed(2);
+  document.getElementById('S-value').textContent = S.toFixed(2);
+  document.getElementById('O-value').textContent = O.toFixed(2);
+  document.getElementById('CETS-value').textContent = cets.toFixed(2);
+  let advice = '';
+  if (cets >= 0.75) advice = '屬於高勝率進場區，建議可加碼。';
+  else if (cets >= 0.55) advice = '處於中性觀望區，可少量分批進場。';
+  else advice = '風險較高區，不建議進場。';
+  document.getElementById('cets-advice').textContent = advice;
 }
 
