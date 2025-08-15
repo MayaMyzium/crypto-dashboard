@@ -43,6 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSentimentChart().catch((err) => {
     console.error('情緒分數折線圖資料取得失敗', err);
   });
+
+  // 更新專屬 CETS 分析並設定定時器
+  try {
+    updateSpecializedCETS();
+  } catch (e) {
+    console.error('updateSpecializedCETS error', e);
+  }
+  // 每 10 分鐘執行一次分析
+  setInterval(() => {
+    try {
+      updateSpecializedCETS();
+    } catch (e) {
+      console.error('updateSpecializedCETS error', e);
+    }
+  }, 10 * 60 * 1000);
 });
 
 async function updateAnalysis(coin, tbody) {
@@ -459,3 +474,36 @@ async function fetchCoinbaseFundingRate(instId) {
 }
 
 // 本頁不再使用圖表，改為表格顯示，故 drawAnalysisChart 移除
+
+/**
+ * 根據各幣種專屬 CETS 模型計算 CETS 值並更新判斷結果。
+ * 本示例使用固定的 L 和 S 值以及預設的 O 值計算，僅供示範用。
+ */
+function updateSpecializedCETS() {
+  // 假設的流動性與風險情緒指數，可依實際需求替換成即時數據
+  const L = 0.65;
+  const S = 0.70;
+  // 各幣種預設 O 值與權重。此處的 O 值代表鏈上指標綜合得分（0~1），可依實際計算替換。
+  const configs = {
+    // 使用修正後的 O 值和權重，符合幣別專屬 CETS 公式
+    BTC: { O: 0.85, w1: 0.25, w2: 0.25, w3: 0.50 },
+    ETH: { O: 0.90, w1: 0.30, w2: 0.35, w3: 0.35 },
+    XRP: { O: 0.50, w1: 0.35, w2: 0.35, w3: 0.30 },
+    DOGE: { O: 0.50, w1: 0.20, w2: 0.50, w3: 0.30 },
+    ADA: { O: 0.35, w1: 0.25, w2: 0.30, w3: 0.45 },
+    SOL: { O: 0.90, w1: 0.25, w2: 0.30, w3: 0.45 }
+  };
+  Object.keys(configs).forEach((key) => {
+    const cfg = configs[key];
+    const cets = cfg.w1 * L + cfg.w2 * S + cfg.w3 * cfg.O;
+    let category;
+    if (cets >= 0.75) category = '高勝率進場區';
+    else if (cets >= 0.55) category = '中性觀望區';
+    else category = '風險高區';
+    // 更新 DOM
+    const valEl = document.getElementById(`cets-value-${key.toLowerCase()}`);
+    const catEl = document.getElementById(`cets-category-${key.toLowerCase()}`);
+    if (valEl) valEl.textContent = cets.toFixed(3);
+    if (catEl) catEl.textContent = category;
+  });
+}
