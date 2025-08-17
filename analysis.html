@@ -31,39 +31,76 @@
     <!-- 幣別專屬 CETS 模型與判斷 -->
     <section>
       <h2>幣別專屬 CETS 模型與判斷</h2>
-      <p>根據各幣種的專屬 CETS 模型，以下表格直接提供目前判斷結果所屬區間：</p>
+      <p>以下表格整理比特幣、以太幣、XRP、狗狗幣、ADA 與 Solana 的 CETS 專屬模型。欄位包含權重分配 (w₁, w₂, w₃)、O 組成指標，以及判斷邏輯。箭頭代表指標增加或減少對 O 的影響方向。</p>
       <table class="analysis-table">
         <thead>
           <tr>
             <th>幣種</th>
-            <th>判斷結果</th>
+            <th>權重 (w₁, w₂, w₃)</th>
+            <th>O 組成</th>
+            <th>判斷邏輯</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>比特幣 (BTC)</td>
-            <td>高勝率進場區 (CETS ≥ 0.75)</td>
+            <td>0.25 / 0.25 / 0.50</td>
+            <td>0.3×MVRV↓ + 0.3×NUPL↓ + 0.2×Puell↓ + 0.2×活躍地址↑</td>
+            <td>強調鏈上數據；指標下降/上升代表礦工收入減少與網絡活躍度提升，w₃=0.5 反映鏈上週期驅動</td>
           </tr>
           <tr>
             <td>以太幣 (ETH)</td>
-            <td>高勝率進場區 (CETS ≥ 0.75)</td>
+            <td>0.30 / 0.35 / 0.35</td>
+            <td>0.25×MVRV↓ + 0.25×NUPL↓ + 0.25×Gas↓ + 0.25×TVL↑</td>
+            <td>納入 Gas 費與 TVL 以衡量網絡擁擠及 DeFi 活躍，w₂=0.35 捕捉高波動性</td>
           </tr>
           <tr>
             <td>XRP</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
+            <td>0.35 / 0.35 / 0.30</td>
+            <td>0.3×MVRV↓ + 0.35×帳戶數↑ + 0.35×新帳戶↑</td>
+            <td>O 以帳戶增長衡量採用；宏觀權重較高，因監管消息影響較大</td>
           </tr>
           <tr>
             <td>狗狗幣 (DOGE)</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
+            <td>0.20 / 0.50 / 0.30</td>
+            <td>0.4×活躍地址↑ + 0.4×交易量↑ + 0.2×(1-NUPL)</td>
+            <td>社群與交易活躍度為核心；w₂=0.5 強調情緒驅動</td>
           </tr>
           <tr>
             <td>ADA</td>
-            <td>風險高區 (CETS &lt; 0.55)</td>
+            <td>0.25 / 0.30 / 0.45</td>
+            <td>0.3×質押參與↑ + 0.3×每日交易量↑ + 0.2×(1-利潤比) + 0.2×(1-NUPL)</td>
+            <td>質押率與交易量反映生態健康；O 權重最高以捕捉成長</td>
           </tr>
           <tr>
             <td>Solana (SOL)</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
+            <td>0.25 / 0.30 / 0.45</td>
+            <td>0.3×DEX 量↑ + 0.3×TVL↑ + 0.2×交易數↑ + 0.2×(1-NUPL)</td>
+            <td>DEX 交易量與 TVL 評估生態活躍，w₃=0.45 反映高性能公鏈特性</td>
           </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 幣別 CETS 分析結果 -->
+    <section id="coin-cets-result-section">
+      <h2>幣別 CETS 分析結果</h2>
+      <p>根據各幣種的專屬 CETS 模型，以下表格展示目前的 CETS 值與判斷區間，系統每 10 分鐘自動更新一次。</p>
+      <table class="analysis-table">
+        <thead>
+          <tr>
+            <th>幣種</th>
+            <th>CETS 值</th>
+            <th>判斷區間</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>BTC</td><td id="cets-value-btc">--</td><td id="cets-category-btc">--</td></tr>
+          <tr><td>ETH</td><td id="cets-value-eth">--</td><td id="cets-category-eth">--</td></tr>
+          <tr><td>XRP</td><td id="cets-value-xrp">--</td><td id="cets-category-xrp">--</td></tr>
+          <tr><td>DOGE</td><td id="cets-value-doge">--</td><td id="cets-category-doge">--</td></tr>
+          <tr><td>ADA</td><td id="cets-value-ada">--</td><td id="cets-category-ada">--</td></tr>
+          <tr><td>SOL</td><td id="cets-value-sol">--</td><td id="cets-category-sol">--</td></tr>
         </tbody>
       </table>
     </section>
