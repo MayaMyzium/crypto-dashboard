@@ -43,6 +43,35 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSentimentChart().catch((err) => {
     console.error('情緒分數折線圖資料取得失敗', err);
   });
+
+  // 更新專屬 CETS 分析並設定定時器
+  try {
+    updateSpecializedCETS();
+  } catch (e) {
+    console.error('updateSpecializedCETS error', e);
+  }
+  // 每 10 分鐘執行一次分析
+  setInterval(() => {
+    try {
+      updateSpecializedCETS();
+    } catch (e) {
+      console.error('updateSpecializedCETS error', e);
+    }
+  }, 10 * 60 * 1000);
+
+  // 初始化 TS 分析並設定定時器
+  try {
+    updateTSAnalysis();
+  } catch (e) {
+    console.error('updateTSAnalysis error', e);
+  }
+  setInterval(() => {
+    try {
+      updateTSAnalysis();
+    } catch (e) {
+      console.error('updateTSAnalysis error', e);
+    }
+  }, 10 * 60 * 1000);
 });
 
 async function updateAnalysis(coin, tbody) {
@@ -459,3 +488,65 @@ async function fetchCoinbaseFundingRate(instId) {
 }
 
 // 本頁不再使用圖表，改為表格顯示，故 drawAnalysisChart 移除
+
+/**
+ * 根據各幣種專屬 CETS 模型計算 CETS 值並更新判斷結果。
+ * 本示例使用固定的 L 和 S 值以及預設的 O 值計算，僅供示範用。
+ */
+function updateSpecializedCETS() {
+  // 假設的流動性與風險情緒指數，可依實際需求替換成即時數據
+  const L = 0.65;
+  const S = 0.70;
+  // 各幣種預設 O 值與權重。此處的 O 值代表鏈上指標綜合得分（0~1），可依實際計算替換。
+  const configs = {
+    // 使用修正後的 O 值和權重，符合幣別專屬 CETS 公式
+    BTC: { O: 0.85, w1: 0.25, w2: 0.25, w3: 0.50 },
+    ETH: { O: 0.90, w1: 0.30, w2: 0.35, w3: 0.35 },
+    XRP: { O: 0.50, w1: 0.35, w2: 0.35, w3: 0.30 },
+    DOGE: { O: 0.50, w1: 0.20, w2: 0.50, w3: 0.30 },
+    ADA: { O: 0.35, w1: 0.25, w2: 0.30, w3: 0.45 },
+    SOL: { O: 0.90, w1: 0.25, w2: 0.30, w3: 0.45 }
+  };
+  Object.keys(configs).forEach((key) => {
+    const cfg = configs[key];
+    const cets = cfg.w1 * L + cfg.w2 * S + cfg.w3 * cfg.O;
+    let category;
+    if (cets >= 0.75) category = '高勝率進場區';
+    else if (cets >= 0.55) category = '中性觀望區';
+    else category = '風險高區';
+    // 更新 DOM
+    const valEl = document.getElementById(`cets-value-${key.toLowerCase()}`);
+    const catEl = document.getElementById(`cets-category-${key.toLowerCase()}`);
+    if (valEl) valEl.textContent = cets.toFixed(3);
+    if (catEl) catEl.textContent = category;
+  });
+}
+
+/**
+ * 計算並更新幣別 TS 分析結果
+ * 使用預設的宏觀 M、情緒 S 及 O_normalized 值，根據權重計算 TS
+ * TS > 0.6 強烈看漲；0.3 ≤ TS ≤ 0.6 中性；TS < 0.3 看跌
+ */
+function updateTSAnalysis() {
+  // 預設指標
+  const configs = {
+    btc: { M: 0.5, S: 0.7, O: 0.54, w1: 0.25, w2: 0.25, w3: 0.50 },
+    eth: { M: 0.6, S: 0.7, O: 0.80, w1: 0.30, w2: 0.35, w3: 0.35 },
+    xrp: { M: 0.8, S: 0.7, O: 0.83, w1: 0.35, w2: 0.35, w3: 0.30 },
+    doge: { M: 0.4, S: 0.7, O: 0.82, w1: 0.20, w2: 0.50, w3: 0.30 },
+    ada: { M: 0.6, S: 0.7, O: 0.79, w1: 0.25, w2: 0.30, w3: 0.45 },
+    sol: { M: 0.6, S: 0.7, O: 0.80, w1: 0.25, w2: 0.30, w3: 0.45 }
+  };
+  Object.keys(configs).forEach((key) => {
+    const cfg = configs[key];
+    const ts = cfg.w1 * cfg.M + cfg.w2 * cfg.S + cfg.w3 * cfg.O;
+    let cat;
+    if (ts > 0.6) cat = '強烈看漲';
+    else if (ts >= 0.3) cat = '中性';
+    else cat = '看跌';
+    const valEl = document.getElementById(`ts-value-${key}`);
+    const catEl = document.getElementById(`ts-category-${key}`);
+    if (valEl) valEl.textContent = ts.toFixed(2);
+    if (catEl) catEl.textContent = cat;
+  });
+}

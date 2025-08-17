@@ -28,42 +28,50 @@
         <canvas id="sentimentChart"></canvas>
       </div>
     </section>
-    <!-- 幣別專屬 CETS 模型與判斷 -->
-    <section>
-      <h2>幣別專屬 CETS 模型與判斷</h2>
-      <p>根據各幣種的專屬 CETS 模型，以下表格直接提供目前判斷結果所屬區間：</p>
+
+
+    <!-- 幣別 CETS 分析結果 -->
+    <section id="coin-cets-result-section">
+      <h2>幣別 CETS 分析結果</h2>
+      <p>根據各幣種的專屬 CETS 模型，以下表格展示目前的 CETS 值與判斷區間，系統每 10 分鐘自動更新一次。</p>
       <table class="analysis-table">
         <thead>
           <tr>
             <th>幣種</th>
-            <th>判斷結果</th>
+            <th>CETS 值</th>
+            <th>判斷區間</th>
           </tr>
         </thead>
         <tbody>
+          <tr><td>BTC</td><td id="cets-value-btc">--</td><td id="cets-category-btc">--</td></tr>
+          <tr><td>ETH</td><td id="cets-value-eth">--</td><td id="cets-category-eth">--</td></tr>
+          <tr><td>XRP</td><td id="cets-value-xrp">--</td><td id="cets-category-xrp">--</td></tr>
+          <tr><td>DOGE</td><td id="cets-value-doge">--</td><td id="cets-category-doge">--</td></tr>
+          <tr><td>ADA</td><td id="cets-value-ada">--</td><td id="cets-category-ada">--</td></tr>
+          <tr><td>SOL</td><td id="cets-value-sol">--</td><td id="cets-category-sol">--</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 幣別 TS 分析結果 -->
+    <section id="coin-ts-result-section">
+      <h2>幣別 TS 分析結果</h2>
+      <p>以下為根據 TS 多因子公式計算的即時結果，系統每 10 分鐘自動更新一次。TS > 0.6 為強烈看漲；0.3 ≤ TS ≤ 0.6 為中性；TS < 0.3 為看跌。</p>
+      <table class="analysis-table">
+        <thead>
           <tr>
-            <td>比特幣 (BTC)</td>
-            <td>高勝率進場區 (CETS ≥ 0.75)</td>
+            <th>幣種</th>
+            <th>TS 值</th>
+            <th>判斷</th>
           </tr>
-          <tr>
-            <td>以太幣 (ETH)</td>
-            <td>高勝率進場區 (CETS ≥ 0.75)</td>
-          </tr>
-          <tr>
-            <td>XRP</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
-          </tr>
-          <tr>
-            <td>狗狗幣 (DOGE)</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
-          </tr>
-          <tr>
-            <td>ADA</td>
-            <td>風險高區 (CETS &lt; 0.55)</td>
-          </tr>
-          <tr>
-            <td>Solana (SOL)</td>
-            <td>中性觀望區 (0.55 ≤ CETS &lt; 0.75)</td>
-          </tr>
+        </thead>
+        <tbody>
+          <tr><td>BTC</td><td id="ts-value-btc">--</td><td id="ts-category-btc">--</td></tr>
+          <tr><td>ETH</td><td id="ts-value-eth">--</td><td id="ts-category-eth">--</td></tr>
+          <tr><td>XRP</td><td id="ts-value-xrp">--</td><td id="ts-category-xrp">--</td></tr>
+          <tr><td>DOGE</td><td id="ts-value-doge">--</td><td id="ts-category-doge">--</td></tr>
+          <tr><td>ADA</td><td id="ts-value-ada">--</td><td id="ts-category-ada">--</td></tr>
+          <tr><td>SOL</td><td id="ts-value-sol">--</td><td id="ts-category-sol">--</td></tr>
         </tbody>
       </table>
     </section>
