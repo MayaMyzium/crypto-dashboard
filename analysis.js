@@ -58,20 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('updateSpecializedCETS error', e);
     }
   }, 10 * 60 * 1000);
-
-  // 初始化 TS 分析並設定定時器
-  try {
-    updateTSAnalysis();
-  } catch (e) {
-    console.error('updateTSAnalysis error', e);
-  }
-  setInterval(() => {
-    try {
-      updateTSAnalysis();
-    } catch (e) {
-      console.error('updateTSAnalysis error', e);
-    }
-  }, 10 * 60 * 1000);
 });
 
 async function updateAnalysis(coin, tbody) {
@@ -519,34 +505,5 @@ function updateSpecializedCETS() {
     const catEl = document.getElementById(`cets-category-${key.toLowerCase()}`);
     if (valEl) valEl.textContent = cets.toFixed(3);
     if (catEl) catEl.textContent = category;
-  });
-}
-
-/**
- * 計算並更新幣別 TS 分析結果
- * 使用預設的宏觀 M、情緒 S 及 O_normalized 值，根據權重計算 TS
- * TS > 0.6 強烈看漲；0.3 ≤ TS ≤ 0.6 中性；TS < 0.3 看跌
- */
-function updateTSAnalysis() {
-  // 預設指標
-  const configs = {
-    btc: { M: 0.5, S: 0.7, O: 0.54, w1: 0.25, w2: 0.25, w3: 0.50 },
-    eth: { M: 0.6, S: 0.7, O: 0.80, w1: 0.30, w2: 0.35, w3: 0.35 },
-    xrp: { M: 0.8, S: 0.7, O: 0.83, w1: 0.35, w2: 0.35, w3: 0.30 },
-    doge: { M: 0.4, S: 0.7, O: 0.82, w1: 0.20, w2: 0.50, w3: 0.30 },
-    ada: { M: 0.6, S: 0.7, O: 0.79, w1: 0.25, w2: 0.30, w3: 0.45 },
-    sol: { M: 0.6, S: 0.7, O: 0.80, w1: 0.25, w2: 0.30, w3: 0.45 }
-  };
-  Object.keys(configs).forEach((key) => {
-    const cfg = configs[key];
-    const ts = cfg.w1 * cfg.M + cfg.w2 * cfg.S + cfg.w3 * cfg.O;
-    let cat;
-    if (ts > 0.6) cat = '強烈看漲';
-    else if (ts >= 0.3) cat = '中性';
-    else cat = '看跌';
-    const valEl = document.getElementById(`ts-value-${key}`);
-    const catEl = document.getElementById(`ts-category-${key}`);
-    if (valEl) valEl.textContent = ts.toFixed(2);
-    if (catEl) catEl.textContent = cat;
   });
 }
