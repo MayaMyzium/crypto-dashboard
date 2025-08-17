@@ -1,71 +1,97 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>加密貨幣儀表板</title>
-    <!-- 引入圖表庫 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <header>
-      <h1>加密貨幣監控儀表板</h1>
-      <p>
-        本頁面展示即時恐懼貪婪指數、指定比特幣地址餘額變化以及多種虛擬貨幣的即時價格與 RSI 指標。
-      </p>
-    </header>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
 
-    <!-- 恐懼貪婪指數區塊 -->
-    <section id="fng-section">
-      <h2>恐懼貪婪指數</h2>
-      <div class="card">
-        <div class="card-body">
-          <p class="value" id="fng-value">--</p>
-          <p class="classification" id="fng-class">載入中…</p>
-          <p class="update-info" id="fng-update">索取最新數據…</p>
-        </div>
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加密貨幣監控儀表板</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>加密貨幣監控儀表板</h1>
+    <p>本頁面展示即時恐懼貪婪指數、指定比特幣地址餘額變化以及多種虛擬貨幣的即時價格與 RSI 指標。</p>
+  </header>
+
+  <section>
+    <h2>恐懼貪婪指數</h2>
+    <div class="card">
+      <div class="card-body">
+        <p class="value" id="fng-value">--</p>
+        <p class="classification" id="fng-class">載入中…</p>
+        <p class="update-info" id="fng-update">索取最新數據…</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 比特幣地址餘額區塊 -->
-    <section id="btc-section">
-      <h2>比特幣地址監控</h2>
-      <p>地址：<code id="btc-address">1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP</code></p>
-      <p>目前餘額：<span id="btc-balance">--</span> BTC</p>
-      <div class="chart-container">
-        <canvas id="btcChart"></canvas>
-      </div>
-    </section>
+  <section>
+    <h2>比特幣地址監控</h2>
+    <p>地址：<span id="btc-address">1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP</span></p>
+    <p>目前餘額：<span id="btc-balance">--</span> BTC</p>
+    <div class="chart-container">
+      <canvas id="btcChart"></canvas>
+    </div>
+  </section>
 
-    <!-- 多幣種價格與 RSI 區塊 -->
-    <section id="crypto-section">
-      <h2>主要虛擬貨幣價格與 RSI 指標</h2>
-      <table id="crypto-table" class="crypto-table">
-        <thead>
-          <tr>
-            <th>貨幣</th>
-            <th>價格 (USD)</th>
-            <th>RSI</th>
-            <th>建議</th>
-          </tr>
-        </thead>
-        <tbody id="crypto-tbody">
-          <!-- 動態產生幣種資料 -->
-        </tbody>
-      </table>
-    </section>
+  <section>
+    <h2>主要虛擬貨幣價格與 RSI 指標</h2>
+    <table class="crypto-table">
+      <thead>
+        <tr>
+          <th>貨幣</th>
+          <th>價格 (USD)</th>
+          <th>RSI</th>
+          <th>建議</th>
+        </tr>
+      </thead>
+      <tbody id="crypto-tbody"></tbody>
+    </table>
+  </section>
 
-    <!-- 深入分析連結 -->
-    <section id="analysis-link">
-      <h2>合約做多做空分析</h2>
-      <p>
-        點擊下方按鈕前往深入分析頁面，查看幣安與 OKX 交易所永續合約的做多／做空比例與價格變化。
-      </p>
-      <a href="analysis.html" class="btn">前往深入分析</a>
-    </section>
-
-    <script src="script.js"></script>
-  </body>
+  <section>
+    <h2>合約做多做空分析</h2>
+    <p>點擊下方按鈕前往深入分析頁面，查看幣安與 OKX 交易所永續合約的做多／做空比例與價格變化。</p>
+    <a href="analysis.html" class="btn">前往深入分析</a>
+  </section>
+</body>
 </html>
